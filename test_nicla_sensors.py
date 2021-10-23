@@ -35,14 +35,17 @@ if ble.connected:
 
 # set sample_rate 0 to turn off a sensor
 configSensors = {
-        SENSOR_ID_ACC       : {"sample_rate":0.0},
-        SENSOR_ID_TEMP      : {"sample_rate":1.0},
-        SENSOR_ID_HUMID     : {"sample_rate":1.0},
+        SENSOR_ID_ACC                   : {"sample_rate":0.0},
+        SENSOR_ID_TEMP                  : {"sample_rate":0.0},
+        SENSOR_ID_HUMID                 : {"sample_rate":0.0},
+        SENSOR_ID_BSEC                  : {"sample_rate":0.0},
+        SENSOR_ID_BSEC_DEPRECATED       : {"sample_rate":0.0},
         }
 
 max_sample_rate = 0.0
 
 #DEBUG = True
+DEBUG = True
 DEBUG = False
 
 
@@ -84,6 +87,8 @@ while True:
             batchReadSize = int(NICLA_BLE_SENSOR_DATA_PKT_SIZE * 1)
             sensorDataBatch = nicla_connection[NiclaService].read(batchReadSize)
             if (sensorDataBatch is None):
+                if DEBUG:
+                    print("read none")
                 time.sleep(1)
                 continue
 
@@ -108,8 +113,8 @@ while True:
                         print("unmatched frame size, suspicious data, abandon the rest");
                         break
                 else:
-                    print("unknown or unrequested sensor:", sensorId, "abandon the rest");
-                    break;
+                    print("unknown or unrequested sensor:", sensorId, "skip packet");
+                    continue;
 
                 name = nicla_sensors_desc_tab[sensorId]["name"]
                 scale = nicla_sensors_desc_tab[sensorId]["scale"]
@@ -127,6 +132,17 @@ while True:
                     buf = sensorFrame[0: 2 + 1]
                     (id, sz, humid) = struct.unpack("=BBB", buf)
                     print(name, ",#", sensorDataPktCnt, ",",  humid * scale, ",", t_now)
+                elif (sensorId == SENSOR_ID_BSEC):
+                    buf = sensorFrame[0: 2 + 10]
+                    (id, sz, iaq,iaq_s,bvoc,eco2,status) = struct.unpack("=BBhhhhB", buf)
+                    print(name, ",#", sensorDataPktCnt, ",",  iaq, ",", iaq_s, ",", bvoc * 0.01, eco2, status, t_now)
+                elif (sensorId == SENSOR_ID_BSEC_DEPRECATED):
+                    buf = sensorFrame[0: 2 + 8]
+                    (id, sz, temp_comp, humid_comp) = struct.unpack("=BBff", buf)
+                    print(name, ",#", sensorDataPktCnt, ",",  temp_comp, ",", humid_comp, t_now)
+                else:
+                    print("undefined parsing scheme for sensor:", sensorId);
+
                 sensorDataPktCnt += 1
 
             if DEBUG:

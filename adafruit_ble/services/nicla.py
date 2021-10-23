@@ -24,16 +24,20 @@ NICLA_BLE_SENSOR_CFG_PKT_SIZE = 9
 NICLA_BLE_SENSOR_DATA_PKT_SIZE = 12
 NICLA_BLE_SENSOR_BUFFER_PKT_CNT= 200
 
-SCALE_DEFAULT_ACCEL = 4096.0
+SCALE_DEFAULT_ACCEL = 1/4096.0
 
 SENSOR_ID_ACC = 4
 SENSOR_ID_TEMP = 128
 SENSOR_ID_HUMID = 130
+SENSOR_ID_BSEC = 115
+SENSOR_ID_BSEC_DEPRECATED = 171
 
 nicla_sensors_desc_tab = {
-        SENSOR_ID_ACC       : {"name":"accelerometer corrected",     "frame_size":7,          "scale":1/SCALE_DEFAULT_ACCEL},
-        SENSOR_ID_TEMP      : {"name":"temperature",                 "frame_size":5,          "scale": 0.01}, #mismatch with ds
-        SENSOR_ID_HUMID     : {"name":"relative humidity",           "frame_size":2,          "scale":1}
+        SENSOR_ID_ACC             : {"name":"accelerometer corrected",     "frame_size":7,          "scale":SCALE_DEFAULT_ACCEL},
+        SENSOR_ID_TEMP            : {"name":"temperature",                 "frame_size":5,          "scale": 0.01}, #mismatch with ds
+        SENSOR_ID_HUMID           : {"name":"relative humidity",           "frame_size":2,          "scale":1},
+        SENSOR_ID_BSEC            : {"name":"BSEC",                        "frame_size":10,         "scale":1},
+        SENSOR_ID_BSEC_DEPRECATED : {"name":"BSEC (deprecated)",           "frame_size":10,         "scale":1}
         }
 
 # </sonstants>
@@ -67,13 +71,11 @@ class NiclaService(Service):
         if not service:
             self._rx = self._server_rx
             self._tx = self._server_tx
-            print("***not service");
         else:
             # If we're a client then swap the characteristics we use.
             self._rx = self._server_tx
             self._tx = self._server_rx
-            print("***a client");
-    
+
 
     def read(self, nbytes=None):
         """
@@ -108,4 +110,4 @@ class NiclaService(Service):
     def write(self, buf):
         """Write a buffer of bytes."""
         self._tx.write(buf)
-        
+
