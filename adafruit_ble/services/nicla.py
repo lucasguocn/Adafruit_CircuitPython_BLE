@@ -19,9 +19,10 @@ __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_BLE.git"
 
 
-# <sonstants>
+# <constants>
 NICLA_BLE_SENSOR_CFG_PKT_SIZE = 9
 NICLA_BLE_SENSOR_DATA_PKT_SIZE = 12
+NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE = 20
 NICLA_BLE_SENSOR_BUFFER_PKT_CNT= 200
 
 SCALE_DEFAULT_ACCEL = 1/4096.0
@@ -36,7 +37,7 @@ nicla_sensors_desc_tab = {
         SENSOR_ID_ACC             : {"name":"accelerometer corrected",     "frame_size":7,          "scale":SCALE_DEFAULT_ACCEL},
         SENSOR_ID_TEMP            : {"name":"temperature",                 "frame_size":5,          "scale": 0.01}, #mismatch with ds
         SENSOR_ID_HUMID           : {"name":"relative humidity",           "frame_size":2,          "scale":1},
-        SENSOR_ID_BSEC            : {"name":"BSEC",                        "frame_size":10,         "scale":1},
+        SENSOR_ID_BSEC            : {"name":"BSEC",                        "frame_size":18,         "scale":1},
         SENSOR_ID_BSEC_DEPRECATED : {"name":"BSEC (deprecated)",           "frame_size":10,         "scale":1}
         }
 
@@ -59,6 +60,13 @@ class NiclaService(Service):
         timeout=1.0,
         buffer_size= NICLA_BLE_SENSOR_DATA_PKT_SIZE * NICLA_BLE_SENSOR_BUFFER_PKT_CNT,
     )
+
+    _server_tx_long = StreamOut(
+        uuid=VendorUUID("34C2E3BE-34AA-11EB-ADC1-0242AC120002"),
+        timeout=1.0,
+        buffer_size= NICLA_BLE_SENSOR_DATA_PKT_SIZE * NICLA_BLE_SENSOR_BUFFER_PKT_CNT,
+    )
+
     _server_rx = StreamIn(
         uuid=VendorUUID("34C2E3BD-34AA-11EB-ADC1-0242AC120002"),
         timeout=1.0,
@@ -71,13 +79,15 @@ class NiclaService(Service):
         if not service:
             self._rx = self._server_rx
             self._tx = self._server_tx
+            self._tx_long = None
         else:
             # If we're a client then swap the characteristics we use.
             self._rx = self._server_tx
+            self._rx_long = self._server_tx_long
             self._tx = self._server_rx
 
 
-    def read(self, nbytes=None):
+    def read(self, nbytes=None, long = False):
         """
         Read characters. If ``nbytes`` is specified then read at most that many bytes.
         Otherwise, read everything that arrives until the connection times out.
@@ -86,9 +96,12 @@ class NiclaService(Service):
         :return: Data read
         :rtype: bytes or None
         """
-        return self._rx.read(nbytes)
+        if long:
+            return self._rx_long.read(nbytes)
+        else:
+            return self._rx.read(nbytes)
 
-    def readinto(self, buf, nbytes=None):
+    def readinto(self, buf, nbytes=None, long = False):
         """
         Read bytes into the ``buf``. If ``nbytes`` is specified then read at most
         that many bytes. Otherwise, read at most ``len(buf)`` bytes.
@@ -96,7 +109,11 @@ class NiclaService(Service):
         :return: number of bytes read and stored into ``buf``
         :rtype: int or None (on a non-blocking error)
         """
-        return self._rx.readinto(buf, nbytes)
+        if long:
+            return self._rx.readinto(buf, nbytes)
+        else:
+            return self._rx_long.readinto(buf, nbytes)
+
 
     @property
     def in_waiting(self):
