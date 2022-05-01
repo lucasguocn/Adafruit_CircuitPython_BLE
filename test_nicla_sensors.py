@@ -34,23 +34,140 @@ if ble.connected:
 
 
 # set sample_rate 0 to turn off a sensor
-configSensors = {
+sensorConfig = {
         SENSOR_ID_ACC                   : {"sample_rate":0.0},
-        SENSOR_ID_TEMP                  : {"sample_rate":0.0},
-        SENSOR_ID_HUMID                 : {"sample_rate":0.0},
-        SENSOR_ID_BSEC                  : {"sample_rate":0.0},
-        SENSOR_ID_BSEC_DEPRECATED       : {"sample_rate":0.0},
+        SENSOR_ID_TEMP                  : {"sample_rate":1.0},
+        SENSOR_ID_HUMID                 : {"sample_rate":1.0},
+        SENSOR_ID_BSEC                  : {"sample_rate":1.0},
+        SENSOR_ID_BSEC_DEPRECATED       : {"sample_rate":1.0},
         }
 
 max_sample_rate = 0.0
 
 #DEBUG = True
-DEBUG = True
 DEBUG = False
+#DEBUG = True
 
 
-sensorDataBuf = bytearray(100 * NICLA_BLE_SENSOR_DATA_PKT_SIZE)
+sensorDataPktCnt = 0
+sensorConfigured = False
+def configSensors(connection):
+    global sensorConfigured
+    global max_sample_rate
+    global sensorDataPktCnt
+
+    sensorDataPktCnt = 0    #reset
+
+    st = struct.Struct("=BfI")
+    sensorConfigPkt = bytearray(NICLA_BLE_SENSOR_CFG_PKT_SIZE)
+    for sensor in sensorConfig:
+        sample_rate = sensorConfig[sensor]["sample_rate"]
+        st.pack_into(sensorConfigPkt, 0, sensor, sample_rate, 0)
+
+        if (max_sample_rate < sample_rate):
+            max_sample_rate = sample_rate
+
+        if DEBUG:
+            print("config pkt for sensor:", sensor)
+            for b in sensorConfigPkt: print(hex(b))
+
+        connection[NiclaService].write(sensorConfigPkt)
+        print("sensor config packet sent for sensor:", sensor)
+
+    sensorConfigured = True
+
+
+def poll_regular_sensors(connection):
+        batchReadSize = int(NICLA_BLE_SENSOR_DATA_PKT_SIZE * 1)
+        batch = nicla_connection[NiclaService].read(batchReadSize, long = False)
+
+        return batch
+
+def poll_composite_sensors(connection):
+        batchReadSize = int(NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE * 1)
+        batch = nicla_connection[NiclaService].read(batchReadSize, long = True)
+
+        return batch
+
+
+
+def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
+    sensorId = sensorFrame[0]
+    name = nicla_sensors_desc_tab[sensorId]["name"]
+    scale = nicla_sensors_desc_tab[sensorId]["scale"]
+    t_now = datetime.datetime.now()
+    if (sensorId == SENSOR_ID_ACC):
+        buf = sensorFrame[1: 2 + 6]
+        (sz, x, y, z) = struct.unpack("<Bhhh", buf)
+        (X, Y, Z) = tuple(i * scale for i in (x,y,z))
+        print(name, ",#", pkt_cnt, ",",  X, "," , Y, ",", Z)
+    elif (sensorId == SENSOR_ID_TEMP):
+        buf = sensorFrame[1: 2 + 2]
+        (sz, temp) = struct.unpack("<Bh", buf)
+        print(name, ",#", pkt_cnt, ",",  temp * scale, ",", t_now)
+    elif (sensorId == SENSOR_ID_HUMID):
+        buf = sensorFrame[1: 2 + 1]
+        (sz, humid) = struct.unpack("<BB", buf)
+        print(name, ",#", pkt_cnt, ",",  humid * scale, ",", t_now)
+    elif (sensorId == SENSOR_ID_BSEC):
+        buf = sensorFrame[1: 2 + 18]
+        (sz, iaq,iaq_s,bvoc_eq,eco2_and_status,comp_t,comp_h,comp_g) = struct.unpack("<BHHHIhHf", buf)
+        bvoc_eq = bvoc_eq * 0.01
+        comp_t = comp_t / 256
+        comp_h = comp_h / 500
+        eco2 = eco2_and_status & 0xffffff
+        status = eco2_and_status >> 24
+        print(name, ",#", pkt_cnt, ",",  iaq, ",", iaq_s, ",", bvoc_eq * 0.01, ",", eco2, ",", status, ",", t_now)
+        print(name + " temperature", ",#", pkt_cnt, ",", comp_t, ",", t_now)
+        print(name + " humidity", ",#", pkt_cnt, ",", comp_h, ",", t_now)
+    elif (sensorId == SENSOR_ID_BSEC_DEPRECATED):
+        buf = sensorFrame[1: 2 + 8]
+        (sz, temp_comp, humid_comp) = struct.unpack("<Bff", buf)
+        print(name, ",#", pkt_cnt, ",",  temp_comp, ",", humid_comp, t_now, ",", sz)
+    else:
+        print("undefined parsing scheme for sensor:", sensorId)
+    return
+
 t_prev = datetime.datetime.now()
+
+def process_sensor_data_batch(batch, pkt_size):
+    global t_prev
+    global sensorDataPktCnt
+
+    t_now = datetime.datetime.now()
+    lenSensorDataBatch = len(batch)
+    pktCntInBatch = int(lenSensorDataBatch / pkt_size)
+
+    if DEBUG:
+        print("    bytes read:", lenSensorDataBatch, pktCntInBatch, "#",  "@", t_now, "del=", (t_now - t_prev))
+
+    t_prev = t_now
+
+    if DEBUG:
+        for b in batch: print(hex(b))
+
+    for i in range(pktCntInBatch):
+        sensorFrame = batch[i * pkt_size : ((i + 1) * pkt_size + 1)]
+
+        sensorId = sensorFrame[0]
+        if (sensorId in nicla_sensors_desc_tab):
+            if (sensorFrame[1] != nicla_sensors_desc_tab[sensorId]["frame_size"]):
+                print("unmatched frame size, suspicious data, abandon the rest")
+                break
+        else:
+            print("unknown or unrequested sensor:", sensorId, "skip packet")
+            continue
+
+        process_sensor_packet(sensorFrame, pkt_size, sensorDataPktCnt)
+        sensorDataPktCnt += 1
+
+    if DEBUG:
+        print("sensor data pkt cnt received so far:", sensorDataPktCnt)
+
+
+process_composite_sensors = True
+
+
 while True:
     if not nicla_connection:
         print("Scanning...")
@@ -62,103 +179,41 @@ while True:
         # Stop scanning whether or not we are connected.
         ble.stop_scan()
 
-    sensorConfigured = False
-    sensorDataPktCnt = 0
     while nicla_connection and nicla_connection.connected:
         try:
             if not sensorConfigured:
-                st = struct.Struct("=BfI")
-                sensorConfigPkt = bytearray(NICLA_BLE_SENSOR_CFG_PKT_SIZE)
-                for sensor in configSensors:
-                    sample_rate = configSensors[sensor]["sample_rate"]
-                    st.pack_into(sensorConfigPkt, 0, sensor, sample_rate, 0)
+                configSensors(nicla_connection)
 
-                    if (max_sample_rate < sample_rate):
-                        max_sample_rate = sample_rate
+            sensorDataBatch = poll_regular_sensors(nicla_connection)
+            if (sensorDataBatch is not None):
+                process_sensor_data_batch(sensorDataBatch, NICLA_BLE_SENSOR_DATA_PKT_SIZE)
 
-                    if DEBUG:
-                        for b in sensorConfigPkt: print(hex(b))
+            if process_composite_sensors:
+                longSensorDataBatch = poll_composite_sensors(nicla_connection)
+                if (longSensorDataBatch is not None):
+                    process_sensor_data_batch(longSensorDataBatch, NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE)
 
-                    nicla_connection[NiclaService].write(sensorConfigPkt)
-                    print("sensor config packet sent for sensor:", sensor);
-
-                sensorConfigured = True
-
-            batchReadSize = int(NICLA_BLE_SENSOR_DATA_PKT_SIZE * 1)
-            sensorDataBatch = nicla_connection[NiclaService].read(batchReadSize)
-            if (sensorDataBatch is None):
+            if (sensorDataBatch is None) and (longSensorDataBatch is None):
                 if DEBUG:
                     print("read none")
                 time.sleep(1)
                 continue
 
-            t_now = datetime.datetime.now()
-            lenSensorDataBatch = len(sensorDataBatch)
-            pktCntInBatch = int(lenSensorDataBatch / NICLA_BLE_SENSOR_DATA_PKT_SIZE)
 
             if DEBUG:
-                print("    bytes read:", lenSensorDataBatch, pktCntInBatch, "#",  "@", t_now, "del=", (t_now - t_prev))
-
-            t_prev = t_now
-
-            if DEBUG:
-                for b in sensorDataBatch: print(hex(b))
-
-            for i in range(pktCntInBatch):
-                sensorFrame = sensorDataBatch[i * NICLA_BLE_SENSOR_DATA_PKT_SIZE : ((i + 1) * NICLA_BLE_SENSOR_DATA_PKT_SIZE + 1)]
-
-                sensorId = sensorFrame[0]
-                if (sensorId in nicla_sensors_desc_tab):
-                    if (sensorFrame[1] != nicla_sensors_desc_tab[sensorId]["frame_size"]):
-                        print("unmatched frame size, suspicious data, abandon the rest");
-                        break
-                else:
-                    print("unknown or unrequested sensor:", sensorId, "skip packet");
-                    continue;
-
-                name = nicla_sensors_desc_tab[sensorId]["name"]
-                scale = nicla_sensors_desc_tab[sensorId]["scale"]
-                t_now = datetime.datetime.now()
-                if (sensorId == SENSOR_ID_ACC):
-                    buf = sensorFrame[0: 2 + 6]
-                    (id, sz, x, y, z) = struct.unpack("=BBhhh", buf)
-                    (X, Y, Z) = tuple(i * scale for i in (x,y,z))
-                    print(name, ",#", sensorDataPktCnt, ",",  X, "," , Y, ",", Z)
-                elif (sensorId == SENSOR_ID_TEMP):
-                    buf = sensorFrame[0: 2 + 2]
-                    (id, sz, temp) = struct.unpack("=BBh", buf)
-                    print(name, ",#", sensorDataPktCnt, ",",  temp * scale, ",", t_now)
-                elif (sensorId == SENSOR_ID_HUMID):
-                    buf = sensorFrame[0: 2 + 1]
-                    (id, sz, humid) = struct.unpack("=BBB", buf)
-                    print(name, ",#", sensorDataPktCnt, ",",  humid * scale, ",", t_now)
-                elif (sensorId == SENSOR_ID_BSEC):
-                    buf = sensorFrame[0: 2 + 10]
-                    (id, sz, iaq,iaq_s,bvoc,eco2,status) = struct.unpack("=BBhhhhB", buf)
-                    print(name, ",#", sensorDataPktCnt, ",",  iaq, ",", iaq_s, ",", bvoc * 0.01, eco2, status, t_now)
-                elif (sensorId == SENSOR_ID_BSEC_DEPRECATED):
-                    buf = sensorFrame[0: 2 + 8]
-                    (id, sz, temp_comp, humid_comp) = struct.unpack("=BBff", buf)
-                    print(name, ",#", sensorDataPktCnt, ",",  temp_comp, ",", humid_comp, t_now)
-                else:
-                    print("undefined parsing scheme for sensor:", sensorId);
-
-                sensorDataPktCnt += 1
-
-            if DEBUG:
-                print("sensor data pkt cnt received so far:", sensorDataPktCnt);
-
-
+                print("max_sample_rate:", max_sample_rate)
             if (max_sample_rate < 5.0):
                 sys.stdout.flush()
 
         except OSError:
             try:
                 nicla_connection.disconnect()
-                print("disconnected");
+                print("disconnected")
             except:  # pylint: disable=bare-except
                 pass
 
             nicla_connection = None
 
         time.sleep(0.2)
+
+
