@@ -23,7 +23,8 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_BLE.git"
 NICLA_BLE_SENSOR_CFG_PKT_SIZE = 9
 NICLA_BLE_SENSOR_DATA_PKT_SIZE = 12
 NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE = 20
-NICLA_BLE_SENSOR_BUFFER_PKT_CNT= 400
+NICLA_BLE_SENSOR_BUFFER_PKT_CNT= 100
+NICLA_BLE_SENSOR_BUFFER_LONG_PKT_CNT= 10
 
 SCALE_DEFAULT_ACCEL = (16.0/65536)
 SCALE_DEFAULT_GYRO = (4000.0/65536)
@@ -62,14 +63,14 @@ class NiclaService(Service):
     uuid = VendorUUID("34C2E3BB-34AA-11EB-ADC1-0242AC120002")
     _server_tx = StreamOut(
         uuid=VendorUUID("34C2E3BC-34AA-11EB-ADC1-0242AC120002"),
-        timeout=0.001,
+        timeout=1.0,
         buffer_size= NICLA_BLE_SENSOR_DATA_PKT_SIZE * NICLA_BLE_SENSOR_BUFFER_PKT_CNT,
     )
 
     _server_tx_long = StreamOut(
         uuid=VendorUUID("34C2E3BE-34AA-11EB-ADC1-0242AC120002"),
         timeout=0.001,
-        buffer_size= NICLA_BLE_SENSOR_DATA_PKT_SIZE * NICLA_BLE_SENSOR_BUFFER_PKT_CNT,
+        buffer_size= NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE * NICLA_BLE_SENSOR_BUFFER_PKT_CNT,
     )
 
     _server_rx = StreamIn(
