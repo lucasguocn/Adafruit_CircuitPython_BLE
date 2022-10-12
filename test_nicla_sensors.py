@@ -35,19 +35,21 @@ if ble.connected:
 
 # set sample_rate 0 to turn off a sensor
 sensorConfig = {
-        SENSOR_ID_ACC                   : {"sample_rate":0.0},
-        SENSOR_ID_TEMP                  : {"sample_rate":1.0},
-        SENSOR_ID_HUMID                 : {"sample_rate":1.0},
+        SENSOR_ID_ACC                   : {"sample_rate":10.0},
+        SENSOR_ID_GYR                   : {"sample_rate":0.0},
+        SENSOR_ID_TEMP                  : {"sample_rate":0.0},
+        SENSOR_ID_HUMID                 : {"sample_rate":0.0},
         SENSOR_ID_BSEC                  : {"sample_rate":1.0},
-        SENSOR_ID_BSEC_DEPRECATED       : {"sample_rate":1.0},
+        SENSOR_ID_BSEC_DEPRECATED       : {"sample_rate":0.0},
         }
 
 max_sample_rate = 0.0
 
 #DEBUG = True
 DEBUG = False
-#DEBUG = True
 
+process_composite_sensors = True
+#process_composite_sensors = False
 
 sensorDataPktCnt = 0
 sensorConfigured = False
@@ -96,7 +98,7 @@ def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
     name = nicla_sensors_desc_tab[sensorId]["name"]
     scale = nicla_sensors_desc_tab[sensorId]["scale"]
     t_now = datetime.datetime.now()
-    if (sensorId == SENSOR_ID_ACC):
+    if (sensorId == SENSOR_ID_ACC) or (sensorId == SENSOR_ID_GYR):
         buf = sensorFrame[1: 2 + 6]
         (sz, x, y, z) = struct.unpack("<Bhhh", buf)
         (X, Y, Z) = tuple(i * scale for i in (x,y,z))
@@ -165,7 +167,6 @@ def process_sensor_data_batch(batch, pkt_size):
         print("sensor data pkt cnt received so far:", sensorDataPktCnt)
 
 
-process_composite_sensors = True
 
 
 while True:
@@ -192,11 +193,13 @@ while True:
                 longSensorDataBatch = poll_composite_sensors(nicla_connection)
                 if (longSensorDataBatch is not None):
                     process_sensor_data_batch(longSensorDataBatch, NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE)
+            else:
+                longSensorDataBatch = None
 
             if (sensorDataBatch is None) and (longSensorDataBatch is None):
                 if DEBUG:
                     print("read none")
-                time.sleep(1)
+                #time.sleep(1)
                 continue
 
 
@@ -214,6 +217,5 @@ while True:
 
             nicla_connection = None
 
-        time.sleep(0.2)
 
 
