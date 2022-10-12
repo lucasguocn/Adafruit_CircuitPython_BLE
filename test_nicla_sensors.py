@@ -35,9 +35,9 @@ if ble.connected:
 
 # set sample_rate 0 to turn off a sensor
 sensorConfig = {
-        SENSOR_ID_ACC                   : {"sample_rate":50.0},
-        SENSOR_ID_GYR                   : {"sample_rate":0.0},
-        SENSOR_ID_BARO                  : {"sample_rate":1.0},
+        SENSOR_ID_ACC                   : {"sample_rate":100.0},
+        SENSOR_ID_GYR                   : {"sample_rate":100.0},
+        SENSOR_ID_BARO                  : {"sample_rate":5.0},
         SENSOR_ID_TEMP                  : {"sample_rate":0.0},
         SENSOR_ID_HUMID                 : {"sample_rate":0.0},
         SENSOR_ID_BSEC                  : {"sample_rate":0.0},
@@ -77,14 +77,23 @@ def configSensors(connection):
         connection[NiclaService].write(sensorConfigPkt)
         print("sensor config packet sent for sensor:", sensor)
 
+    connection[NiclaService].reset_input_buffer()
     sensorConfigured = True
 
 
 def poll_regular_sensors(connection):
-        batchReadSize = int(NICLA_BLE_SENSOR_DATA_PKT_SIZE * 1)
-        batch = nicla_connection[NiclaService].read(batchReadSize, long = False)
+    t_now = datetime.datetime.now()
 
-        return batch
+    avail = nicla_connection[NiclaService].in_waiting
+    batchReadSize = (avail // NICLA_BLE_SENSOR_DATA_PKT_SIZE) * NICLA_BLE_SENSOR_DATA_PKT_SIZE
+
+    if (batchReadSize >= NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE):
+        print("batch_size:", batchReadSize, " avail: ", avail, " time:", t_now)
+        batch = nicla_connection[NiclaService].read(batchReadSize, long = False)
+    else:
+        batch = None
+
+    return batch
 
 def poll_composite_sensors(connection):
         batchReadSize = int(NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE * 1)
@@ -103,7 +112,8 @@ def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
         buf = sensorFrame[1: 2 + 6]
         (sz, x, y, z) = struct.unpack("<Bhhh", buf)
         (X, Y, Z) = tuple(i * scale for i in (x,y,z))
-        print(name, ",#", pkt_cnt, ",",  X, "," , Y, ",", Z)
+        #print(name, ",#", pkt_cnt, ",",  X, "," , Y, ",", Z)
+        print(name, ",#", pkt_cnt, ",",  X, "," , Y, ",", Z, " id_dbg:", sensorFrame[11])
     elif (sensorId == SENSOR_ID_BARO):
         buf = sensorFrame[1: 2 + 3 + 1] 
         buf[4] = 0
