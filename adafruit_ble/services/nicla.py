@@ -30,6 +30,7 @@ SCALE_DEFAULT_GYRO = (4000.0/65536)
 
 SENSOR_ID_ACC = 4
 SENSOR_ID_GYR = 13
+SENSOR_ID_BARO = 129
 SENSOR_ID_TEMP = 128
 SENSOR_ID_HUMID = 130
 SENSOR_ID_BSEC = 115
@@ -38,6 +39,7 @@ SENSOR_ID_BSEC_DEPRECATED = 171
 nicla_sensors_desc_tab = {
         SENSOR_ID_ACC             : {"name":"accelerometer corrected",     "frame_size":7,          "scale":SCALE_DEFAULT_ACCEL},
         SENSOR_ID_GYR             : {"name":"gyroscope corrected",         "frame_size":7,          "scale":SCALE_DEFAULT_GYRO},
+        SENSOR_ID_BARO            : {"name":"barometric pressure",         "frame_size":4,          "scale":1},
         SENSOR_ID_TEMP            : {"name":"temperature",                 "frame_size":5,          "scale": 0.01}, #mismatch with ds
         SENSOR_ID_HUMID           : {"name":"relative humidity",           "frame_size":2,          "scale":1},
         SENSOR_ID_BSEC            : {"name":"BSEC",                        "frame_size":18,         "scale":1},
