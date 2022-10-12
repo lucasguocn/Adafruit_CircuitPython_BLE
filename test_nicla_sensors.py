@@ -35,11 +35,12 @@ if ble.connected:
 
 # set sample_rate 0 to turn off a sensor
 sensorConfig = {
-        SENSOR_ID_ACC                   : {"sample_rate":10.0},
+        SENSOR_ID_ACC                   : {"sample_rate":50.0},
         SENSOR_ID_GYR                   : {"sample_rate":0.0},
+        SENSOR_ID_BARO                  : {"sample_rate":1.0},
         SENSOR_ID_TEMP                  : {"sample_rate":0.0},
         SENSOR_ID_HUMID                 : {"sample_rate":0.0},
-        SENSOR_ID_BSEC                  : {"sample_rate":1.0},
+        SENSOR_ID_BSEC                  : {"sample_rate":0.0},
         SENSOR_ID_BSEC_DEPRECATED       : {"sample_rate":0.0},
         }
 
@@ -103,6 +104,11 @@ def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
         (sz, x, y, z) = struct.unpack("<Bhhh", buf)
         (X, Y, Z) = tuple(i * scale for i in (x,y,z))
         print(name, ",#", pkt_cnt, ",",  X, "," , Y, ",", Z)
+    elif (sensorId == SENSOR_ID_BARO):
+        buf = sensorFrame[1: 2 + 3 + 1] 
+        buf[4] = 0
+        (sz, baro) = struct.unpack("<BI", buf)
+        print(name, ",#", pkt_cnt, ",",  baro * scale, ",", t_now)
     elif (sensorId == SENSOR_ID_TEMP):
         buf = sensorFrame[1: 2 + 2]
         (sz, temp) = struct.unpack("<Bh", buf)
