@@ -34,14 +34,14 @@ if ble.connected:
 
 
 # set sample_rate 0 to turn off a sensor
-sensorConfig = {
-        SENSOR_ID_ACC                   : {"sample_rate":100.0},
-        SENSOR_ID_GYR                   : {"sample_rate":100.0},
-        SENSOR_ID_BARO                  : {"sample_rate":5.0},
-        SENSOR_ID_TEMP                  : {"sample_rate":0.0},
-        SENSOR_ID_HUMID                 : {"sample_rate":0.0},
-        SENSOR_ID_BSEC                  : {"sample_rate":0.0},
-        SENSOR_ID_BSEC_DEPRECATED       : {"sample_rate":0.0},
+sensorList = {
+        SENSOR_ID_ACC                   : {"sample_rate":200.0, "evtCnt":0},
+        SENSOR_ID_GYR                   : {"sample_rate":200.0, "evtCnt":0},
+        SENSOR_ID_BARO                  : {"sample_rate":0.0,   "evtCnt":0},
+        SENSOR_ID_TEMP                  : {"sample_rate":0.0,   "evtCnt":0},
+        SENSOR_ID_HUMID                 : {"sample_rate":0.0,   "evtCnt":0},
+        SENSOR_ID_BSEC                  : {"sample_rate":0.0,   "evtCnt":0},
+        SENSOR_ID_BSEC_DEPRECATED       : {"sample_rate":0.0,   "evtCnt":0},
         }
 
 max_sample_rate = 0.0
@@ -63,8 +63,8 @@ def configSensors(connection):
 
     st = struct.Struct("=BfI")
     sensorConfigPkt = bytearray(NICLA_BLE_SENSOR_CFG_PKT_SIZE)
-    for sensor in sensorConfig:
-        sample_rate = sensorConfig[sensor]["sample_rate"]
+    for sensor in sensorList:
+        sample_rate = sensorList[sensor]["sample_rate"]
         st.pack_into(sensorConfigPkt, 0, sensor, sample_rate, 0)
 
         if (max_sample_rate < sample_rate):
@@ -112,20 +112,23 @@ def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
         buf = sensorFrame[1: 2 + 6]
         (sz, x, y, z) = struct.unpack("<Bhhh", buf)
         (X, Y, Z) = tuple(i * scale for i in (x,y,z))
-        #print(name, ",#", pkt_cnt, ",",  X, "," , Y, ",", Z)
-        print(name, ",#", pkt_cnt, ",",  X, "," , Y, ",", Z, " id_dbg:", sensorFrame[11])
+        pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
+        print(name, ",#", pkt_cnt, ",",  X, "," , Y, ",", Z, " dbg:", sensorFrame[11])
     elif (sensorId == SENSOR_ID_BARO):
-        buf = sensorFrame[1: 2 + 3 + 1] 
+        buf = sensorFrame[1: 2 + 3 + 1]
         buf[4] = 0
         (sz, baro) = struct.unpack("<BI", buf)
+        pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",#", pkt_cnt, ",",  baro * scale, ",", t_now)
     elif (sensorId == SENSOR_ID_TEMP):
         buf = sensorFrame[1: 2 + 2]
         (sz, temp) = struct.unpack("<Bh", buf)
+        pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",#", pkt_cnt, ",",  temp * scale, ",", t_now)
     elif (sensorId == SENSOR_ID_HUMID):
         buf = sensorFrame[1: 2 + 1]
         (sz, humid) = struct.unpack("<BB", buf)
+        pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",#", pkt_cnt, ",",  humid * scale, ",", t_now)
     elif (sensorId == SENSOR_ID_BSEC):
         buf = sensorFrame[1: 2 + 18]
@@ -135,12 +138,14 @@ def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
         comp_h = comp_h / 500
         eco2 = eco2_and_status & 0xffffff
         status = eco2_and_status >> 24
+        pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",#", pkt_cnt, ",",  iaq, ",", iaq_s, ",", bvoc_eq * 0.01, ",", eco2, ",", status, ",", t_now)
         print(name + " temperature", ",#", pkt_cnt, ",", comp_t, ",", t_now)
         print(name + " humidity", ",#", pkt_cnt, ",", comp_h, ",", t_now)
     elif (sensorId == SENSOR_ID_BSEC_DEPRECATED):
         buf = sensorFrame[1: 2 + 8]
         (sz, temp_comp, humid_comp) = struct.unpack("<Bff", buf)
+        pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",#", pkt_cnt, ",",  temp_comp, ",", humid_comp, t_now, ",", sz)
     else:
         print("undefined parsing scheme for sensor:", sensorId)
