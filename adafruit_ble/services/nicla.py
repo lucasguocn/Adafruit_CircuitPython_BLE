@@ -21,10 +21,10 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_BLE.git"
 
 # <constants>
 NICLA_BLE_SENSOR_CFG_PKT_SIZE = 9
-NICLA_BLE_SENSOR_DATA_PKT_SIZE = 12
-NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE = 20
-NICLA_BLE_SENSOR_BUFFER_PKT_CNT= 200
-NICLA_BLE_SENSOR_BUFFER_LONG_PKT_CNT= 10
+NICLA_BLE_SENSOR_DATA_PKT_SIZE = 12         #sizeof(SensorDataPacket.data) + 2
+NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE = 23    #sizeof(SensorLongDataPacket.data) + 2
+NICLA_BLE_SENSOR_BUFFER_PKT_CNT = 200
+NICLA_BLE_SENSOR_BUFFER_LONG_PKT_CNT = 10
 
 SCALE_DEFAULT_ACCEL = (16.0/65536)
 SCALE_DEFAULT_GYRO = (4000.0/65536)
@@ -37,18 +37,23 @@ SENSOR_ID_BARO = 129
 SENSOR_ID_TEMP = 128
 SENSOR_ID_HUMID = 130
 SENSOR_ID_BSEC = 115
+SENSOR_ID_BSEC2_GAS_SCANNING_DATA_COLLECTOR = 116
+SENSOR_ID_BSEC2_GAS_SCANNING_CLASSIFIER = 117
 SENSOR_ID_BSEC_DEPRECATED = 171
 
 nicla_sensors_desc_tab = {
+        #frame_size complies with BHI260AP datasheet
         SENSOR_ID_ACC_RAW         : {"name":"accelerometer raw",           "frame_size":7,          "scale":SCALE_DEFAULT_ACCEL},
         SENSOR_ID_GYR_RAW         : {"name":"gyroscope raw",               "frame_size":7,          "scale":SCALE_DEFAULT_GYRO},
         SENSOR_ID_ACC             : {"name":"accelerometer corrected",     "frame_size":7,          "scale":SCALE_DEFAULT_ACCEL},
         SENSOR_ID_GYR             : {"name":"gyroscope corrected",         "frame_size":7,          "scale":SCALE_DEFAULT_GYRO},
         SENSOR_ID_BARO            : {"name":"barometric pressure",         "frame_size":4,          "scale":1},
-        SENSOR_ID_TEMP            : {"name":"temperature",                 "frame_size":5,          "scale": 0.01}, #mismatch with ds
+        SENSOR_ID_TEMP            : {"name":"temperature",                 "frame_size":5,          "scale": 0.01}, #sz mismatch with ds
         SENSOR_ID_HUMID           : {"name":"relative humidity",           "frame_size":2,          "scale":1},
-        SENSOR_ID_BSEC            : {"name":"BSEC",                        "frame_size":18,         "scale":1},
-        SENSOR_ID_BSEC_DEPRECATED : {"name":"BSEC (deprecated)",           "frame_size":10,         "scale":1}
+        SENSOR_ID_BSEC            : {"name":"BSEC",                        "frame_size":19,         "scale":1},
+        SENSOR_ID_BSEC_DEPRECATED : {"name":"BSEC (deprecated)",           "frame_size":10,         "scale":1},
+        SENSOR_ID_BSEC2_GAS_SCANNING_DATA_COLLECTOR            : {"name":"BSEC2 gas scanning raw data", "frame_size":22, "scale":1},
+        SENSOR_ID_BSEC2_GAS_SCANNING_CLASSIFIER : {"name":"BSEC2 gas scanning result",   "frame_size":6,  "scale":1}
         }
 
 # </sonstants>
@@ -74,7 +79,7 @@ class NiclaService(Service):
     _server_tx_long = StreamOut(
         uuid=VendorUUID("34C2E3BE-34AA-11EB-ADC1-0242AC120002"),
         timeout=0.01,   #too small value could corrupt data
-        buffer_size= NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE * NICLA_BLE_SENSOR_BUFFER_PKT_CNT,
+        buffer_size= NICLA_BLE_SENSOR_DATA_LONG_PKT_SIZE * NICLA_BLE_SENSOR_BUFFER_LONG_PKT_CNT,
     )
 
     _server_rx = StreamIn(
