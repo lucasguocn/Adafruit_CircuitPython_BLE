@@ -61,21 +61,22 @@ if ble.connected:
 # set sample_rate 0 to turn off a sensor
 sensorList = {
         #latency is milli-seconds, if the rate for a sensor is higher than 25hz, recommends to have a latency larger than 40ms
-        SENSOR_ID_ACC                   : {"sample_rate":100.0,     "latency":90,    "evtCnt":0},
-        SENSOR_ID_GYR                   : {"sample_rate":100.0,     "latency":90,    "evtCnt":0},
+        SENSOR_ID_ACC                   : {"sample_rate":000.0,     "latency":90,    "evtCnt":0},
+        SENSOR_ID_GYR                   : {"sample_rate":000.0,     "latency":90,    "evtCnt":0},
         SENSOR_ID_ACC_RAW               : {"sample_rate":000.0,     "latency":90,    "evtCnt":0},
         SENSOR_ID_GYR_RAW               : {"sample_rate":000.0,     "latency":90,    "evtCnt":0},
-        SENSOR_ID_BARO                  : {"sample_rate":5.0,       "latency":0,    "evtCnt":0},
+        SENSOR_ID_BARO                  : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         SENSOR_ID_TEMP                  : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         SENSOR_ID_HUMID                 : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         SENSOR_ID_BSEC                  : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
-        SENSOR_ID_BSEC_DEPRECATED       : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
+        SENSOR_ID_BSEC2_GAS_SCANNING_DATA_COLLECTOR : {"sample_rate":1.0,       "latency":0,    "evtCnt":0},
+        SENSOR_ID_BSEC2_GAS_SCANNING_CLASSIFIER     : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         }
 
 max_sample_rate = 0.0
 
-#DEBUG = True
 DEBUG = False
+#DEBUG = True
 
 process_composite_sensors = True
 #process_composite_sensors = False
@@ -117,7 +118,8 @@ def poll_regular_sensors(connection):
     batchReadSize = (avail // NICLA_BLE_SENSOR_DATA_PKT_SIZE) * NICLA_BLE_SENSOR_DATA_PKT_SIZE
 
     if (batchReadSize >= NICLA_BLE_SENSOR_DATA_PKT_SIZE):
-        print("batch_size:", batchReadSize, " avail: ", avail, " time:", t_now)
+        if DEBUG:
+            print("batch_size:", batchReadSize, " avail: ", avail, " time:", t_now)
         batch = nicla_connection[NiclaService].read(batchReadSize, long = False)
     else:
         batch = None
@@ -141,7 +143,7 @@ def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
     t_now = datetime.datetime.now()
     #if (sensorId == SENSOR_ID_ACC) or (sensorId == SENSOR_ID_GYR):
     if (sensorId in [SENSOR_ID_ACC, SENSOR_ID_GYR, SENSOR_ID_ACC_RAW, SENSOR_ID_GYR_RAW]):
-        buf = sensorFrame[1: 2 + 6]
+        buf = sensorFrame[1: 7+1]
         (sz, x, y, z) = struct.unpack("<Bhhh", buf)
         (X, Y, Z) = tuple(i * scale for i in (x,y,z))
         pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
@@ -151,23 +153,23 @@ def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
         pkt_cnt_got = pkt_cnt
         print(name, ",", pkt_cnt, ",",  X, "," , Y, ",", Z, ", dbg:", sensorFrame[NICLA_BLE_SENSOR_DATA_PKT_SIZE-1])
     elif (sensorId == SENSOR_ID_BARO):
-        buf = sensorFrame[1: 2 + 3 + 1]
+        buf = sensorFrame[1: 4+1+1] #baro sensor is 3bytes long, need an extra byte for a padding 0
         buf[4] = 0
         (sz, baro) = struct.unpack("<BI", buf)
         pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",", pkt_cnt, ",",  baro * scale, ",", " dbg:", sensorFrame[NICLA_BLE_SENSOR_DATA_PKT_SIZE-1])
     elif (sensorId == SENSOR_ID_TEMP):
-        buf = sensorFrame[1: 2 + 2]
+        buf = sensorFrame[1: 3+1]   #ds says 3 as frame size
         (sz, temp) = struct.unpack("<Bh", buf)
         pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",", pkt_cnt, ",",  temp * scale, ",", t_now)
     elif (sensorId == SENSOR_ID_HUMID):
-        buf = sensorFrame[1: 2 + 1]
+        buf = sensorFrame[1: 2+1]
         (sz, humid) = struct.unpack("<BB", buf)
         pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",", pkt_cnt, ",",  humid * scale, ",", t_now)
     elif (sensorId == SENSOR_ID_BSEC):
-        buf = sensorFrame[1: 2 + 18]
+        buf = sensorFrame[1: 19+1]
         (sz, iaq,iaq_s,bvoc_eq,eco2_and_status,comp_t,comp_h,comp_g) = struct.unpack("<BHHHIhHf", buf)
         bvoc_eq = bvoc_eq * 0.01
         comp_t = comp_t / 256
@@ -176,13 +178,30 @@ def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
         status = eco2_and_status >> 24
         pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",", pkt_cnt, ",",  iaq, ",", iaq_s, ",", bvoc_eq * 0.01, ",", eco2, ",", status, ",", t_now)
-        print(name + " temperature", ",#", pkt_cnt, ",", comp_t, ",", t_now)
-        print(name + " humidity", ",#", pkt_cnt, ",", comp_h, ",", t_now)
+        print("\t"+name + " temperature", ",#", pkt_cnt, ",", comp_t, ",", t_now)
+        print("\t"+name + " humidity", ",#", pkt_cnt, ",", comp_h, ",", t_now)
     elif (sensorId == SENSOR_ID_BSEC_DEPRECATED):
-        buf = sensorFrame[1: 2 + 8]
+        buf = sensorFrame[1: 10+1]
         (sz, temp_comp, humid_comp) = struct.unpack("<Bff", buf)
         pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",", pkt_cnt, ",",  temp_comp, ",", humid_comp, t_now, ",", sz)
+    elif (sensorId == SENSOR_ID_BSEC2_GAS_SCANNING_DATA_COLLECTOR):
+        buf = sensorFrame[1: 22+1]
+        (sz, ts_dev, raw_temp, raw_pressure, raw_humid, raw_gas, gas_index) = struct.unpack("<BQhfHfB", buf)
+        raw_temp *= 1.0 / 256
+        raw_humid *= 0.01
+        pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
+        print(name, ",", pkt_cnt, ",",  ts_dev, ",",
+                format(raw_temp, '.2f'), ",", format(raw_pressure, '.6f'), ",",
+                format(raw_humid, '.2f'), ",", format(raw_gas, '.6f'),
+                ",", gas_index, ",", t_now, ",", sz)
+    elif (sensorId == SENSOR_ID_BSEC2_GAS_SCANNING_CLASSIFIER):
+        buf = sensorFrame[1: 6+1]
+        (sz, likelihood_0, likelihood_1, likelihood_2, likelihood_3, accuracy) = struct.unpack("<BBBBBB", buf)
+        pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
+        print(name, ",", pkt_cnt, ",",
+                str(likelihood_0)+"%", ",", str(likelihood_1)+'%', ",",
+                str(likelihood_2)+'%', ",", str(likelihood_3)+'%', ",", accuracy, ",", t_now, ",", sz)
     else:
         print("undefined parsing scheme for sensor:", sensorId)
     return
@@ -211,7 +230,8 @@ def process_sensor_data_batch(batch, pkt_size):
         sensorId = sensorFrame[0]
         if (sensorId in nicla_sensors_desc_tab):
             if (sensorFrame[1] != nicla_sensors_desc_tab[sensorId]["frame_size"]):
-                print("unmatched frame size, suspicious data, abandon the rest")
+                print("unmatched frame size", sensorFrame[1], " vs ",
+                        nicla_sensors_desc_tab[sensorId]["frame_size"],  "suspicious data, abandon the rest")
                 break
         else:
             print("unknown or unrequested sensor:", sensorId, "skip packet")
