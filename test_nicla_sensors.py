@@ -20,6 +20,31 @@ from adafruit_ble import BLERadio
 from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
 from adafruit_ble.services.nicla import *
 
+import signal
+import time
+import readchar
+
+
+time_1st_event = datetime.datetime.now()
+pkt_cnt_got = 0
+
+def handler(signum, frame):
+    #msg = "Ctrl-c was pressed. Do you really want to exit? y/n "
+    t_now = datetime.datetime.now()
+    print("cnt received: ", pkt_cnt_got, end=" ", flush=True)
+    print("start time: ", time_1st_event, end = " ")
+    print("end time: ", t_now)
+    res = input("do you want to continue(y/n)")
+    if res == 'y':
+        print("")
+        exit(1)
+    else:
+        print("", end="\r", flush=True)
+        print(" " * len(msg), end="", flush=True) # clear the printed line
+        print("    ", end="\r", flush=True)
+
+
+signal.signal(signal.SIGINT, handler)
 
 
 ble = BLERadio()
@@ -38,6 +63,8 @@ sensorList = {
         #latency is milli-seconds, if the rate for a sensor is higher than 25hz, recommends to have a latency larger than 40ms
         SENSOR_ID_ACC                   : {"sample_rate":100.0,     "latency":90,    "evtCnt":0},
         SENSOR_ID_GYR                   : {"sample_rate":100.0,     "latency":90,    "evtCnt":0},
+        SENSOR_ID_ACC_RAW               : {"sample_rate":000.0,     "latency":90,    "evtCnt":0},
+        SENSOR_ID_GYR_RAW               : {"sample_rate":000.0,     "latency":90,    "evtCnt":0},
         SENSOR_ID_BARO                  : {"sample_rate":5.0,       "latency":0,    "evtCnt":0},
         SENSOR_ID_TEMP                  : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         SENSOR_ID_HUMID                 : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
@@ -106,15 +133,22 @@ def poll_composite_sensors(connection):
 
 
 def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
+    global pkt_cnt_got
+    global time_1st_event
     sensorId = sensorFrame[0]
     name = nicla_sensors_desc_tab[sensorId]["name"]
     scale = nicla_sensors_desc_tab[sensorId]["scale"]
     t_now = datetime.datetime.now()
-    if (sensorId == SENSOR_ID_ACC) or (sensorId == SENSOR_ID_GYR):
+    #if (sensorId == SENSOR_ID_ACC) or (sensorId == SENSOR_ID_GYR):
+    if (sensorId in [SENSOR_ID_ACC, SENSOR_ID_GYR, SENSOR_ID_ACC_RAW, SENSOR_ID_GYR_RAW]):
         buf = sensorFrame[1: 2 + 6]
         (sz, x, y, z) = struct.unpack("<Bhhh", buf)
         (X, Y, Z) = tuple(i * scale for i in (x,y,z))
         pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
+        if (pkt_cnt == 1):
+            print("time for 1st event:", t_now)
+            time_1st_event = t_now
+        pkt_cnt_got = pkt_cnt
         print(name, ",", pkt_cnt, ",",  X, "," , Y, ",", Z, ", dbg:", sensorFrame[NICLA_BLE_SENSOR_DATA_PKT_SIZE-1])
     elif (sensorId == SENSOR_ID_BARO):
         buf = sensorFrame[1: 2 + 3 + 1]

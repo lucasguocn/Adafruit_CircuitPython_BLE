@@ -29,6 +29,8 @@ NICLA_BLE_SENSOR_BUFFER_LONG_PKT_CNT= 10
 SCALE_DEFAULT_ACCEL = (16.0/65536)
 SCALE_DEFAULT_GYRO = (4000.0/65536)
 
+SENSOR_ID_ACC_RAW = 1
+SENSOR_ID_GYR_RAW = 10
 SENSOR_ID_ACC = 4
 SENSOR_ID_GYR = 13
 SENSOR_ID_BARO = 129
@@ -38,6 +40,8 @@ SENSOR_ID_BSEC = 115
 SENSOR_ID_BSEC_DEPRECATED = 171
 
 nicla_sensors_desc_tab = {
+        SENSOR_ID_ACC_RAW         : {"name":"accelerometer raw",           "frame_size":7,          "scale":SCALE_DEFAULT_ACCEL},
+        SENSOR_ID_GYR_RAW         : {"name":"gyroscope raw",               "frame_size":7,          "scale":SCALE_DEFAULT_GYRO},
         SENSOR_ID_ACC             : {"name":"accelerometer corrected",     "frame_size":7,          "scale":SCALE_DEFAULT_ACCEL},
         SENSOR_ID_GYR             : {"name":"gyroscope corrected",         "frame_size":7,          "scale":SCALE_DEFAULT_GYRO},
         SENSOR_ID_BARO            : {"name":"barometric pressure",         "frame_size":4,          "scale":1},
