@@ -69,8 +69,9 @@ sensorList = {
         SENSOR_ID_TEMP                  : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         SENSOR_ID_HUMID                 : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         SENSOR_ID_BSEC                  : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
-        SENSOR_ID_BSEC2_GAS_SCANNING_DATA_COLLECTOR : {"sample_rate":1.0,       "latency":0,    "evtCnt":0},
-        SENSOR_ID_BSEC2_GAS_SCANNING_CLASSIFIER     : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
+        SENSOR_ID_BSEC2_GAS_SCANNING_DATA_COLLECTOR : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
+        SENSOR_ID_BSEC2_GAS_SCANNING_CLASSIFIER     : {"sample_rate":1.0,       "latency":0,    "evtCnt":0},
+        SENSOR_ID_NICLA_SYSTEM          : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         }
 
 max_sample_rate = 0.0
@@ -163,6 +164,11 @@ def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
         (sz, temp) = struct.unpack("<Bh", buf)
         pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",", pkt_cnt, ",",  temp * scale, ",", t_now)
+    elif (sensorId == SENSOR_ID_NICLA_SYSTEM):
+        buf = sensorFrame[1: 11+1]   #ds says 3 as frame size
+        (sz, temp, dummy,fault_h, fault_l, bat_stat, pmic_h, pmic_l, f_55, faa) = struct.unpack("<BhBBBBBBBB", buf)
+        pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
+        print("fault_h:", fault_h, "fault_l:", fault_l, "bat_stat:", bat_stat, "pmic_h:", pmic_h, "pmic_l:", pmic_l, f_55, faa)
     elif (sensorId == SENSOR_ID_HUMID):
         buf = sensorFrame[1: 2+1]
         (sz, humid) = struct.unpack("<BB", buf)

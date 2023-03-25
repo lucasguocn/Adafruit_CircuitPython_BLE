@@ -41,6 +41,9 @@ SENSOR_ID_BSEC2_GAS_SCANNING_DATA_COLLECTOR = 116
 SENSOR_ID_BSEC2_GAS_SCANNING_CLASSIFIER = 117
 SENSOR_ID_BSEC_DEPRECATED = 171
 
+
+SENSOR_ID_NICLA_SYSTEM = 201
+
 nicla_sensors_desc_tab = {
         #frame_size complies with BHI260AP datasheet
         SENSOR_ID_ACC_RAW         : {"name":"accelerometer raw",           "frame_size":7,          "scale":SCALE_DEFAULT_ACCEL},
@@ -53,7 +56,8 @@ nicla_sensors_desc_tab = {
         SENSOR_ID_BSEC            : {"name":"BSEC",                        "frame_size":19,         "scale":1},
         SENSOR_ID_BSEC_DEPRECATED : {"name":"BSEC (deprecated)",           "frame_size":10,         "scale":1},
         SENSOR_ID_BSEC2_GAS_SCANNING_DATA_COLLECTOR            : {"name":"BSEC2 gas scanning raw data", "frame_size":22, "scale":1},
-        SENSOR_ID_BSEC2_GAS_SCANNING_CLASSIFIER : {"name":"BSEC2 gas scanning result",   "frame_size":6,  "scale":1}
+        SENSOR_ID_BSEC2_GAS_SCANNING_CLASSIFIER : {"name":"BSEC2 gas scanning result",   "frame_size":6,  "scale":1},
+        SENSOR_ID_NICLA_SYSTEM    : {"name":"nicla system",                 "frame_size":11,          "scale": 1},
         }
 
 # </sonstants>
