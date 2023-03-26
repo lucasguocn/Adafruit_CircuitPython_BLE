@@ -328,7 +328,8 @@ class Advertisement:
         returns ``True`` if at least one of the prefixes match.
         """
         # Returns True if cls.get_prefix_bytes() is empty.
-        return entry.matches(cls.get_prefix_bytes(), match_all=all_)
+        return entry.matches(cls.get_prefix_bytes(), all_)
+        #return entry.matches(cls.get_prefix_bytes(), match_all=all_)
 
     def __bytes__(self) -> bytes:
         """The raw packet bytes."""
