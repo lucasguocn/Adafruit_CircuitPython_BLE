@@ -70,7 +70,7 @@ sensorList = {
         SENSOR_ID_HUMID                 : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         SENSOR_ID_BSEC                  : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         SENSOR_ID_BSEC2_GAS_SCANNING_DATA_COLLECTOR : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
-        SENSOR_ID_BSEC2_GAS_SCANNING_CLASSIFIER     : {"sample_rate":1.0,       "latency":0,    "evtCnt":0},
+        SENSOR_ID_BSEC2_GAS_SCANNING_CLASSIFIER     : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         SENSOR_ID_NICLA_SYSTEM          : {"sample_rate":0.0,       "latency":0,    "evtCnt":0},
         }
 
@@ -195,7 +195,7 @@ def process_sensor_packet(sensorFrame, pkt_size, pkt_cnt):
         buf = sensorFrame[1: 22+1]
         (sz, ts_dev, raw_temp, raw_pressure, raw_humid, raw_gas, gas_index) = struct.unpack("<BQhfHfB", buf)
         raw_temp *= 1.0 / 256
-        raw_humid *= 0.01
+        raw_humid *= 0.002
         pkt_cnt = sensorList[sensorId]["evtCnt"] = (sensorList[sensorId]["evtCnt"] + 1)
         print(name, ",", pkt_cnt, ",",  ts_dev, ",",
                 format(raw_temp, '.2f'), ",", format(raw_pressure, '.6f'), ",",
