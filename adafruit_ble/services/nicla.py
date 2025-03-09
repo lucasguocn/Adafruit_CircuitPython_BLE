@@ -50,7 +50,7 @@ nicla_sensors_desc_tab = {
         SENSOR_ID_GYR_RAW         : {"name":"gyroscope raw",               "frame_size":7,          "scale":SCALE_DEFAULT_GYRO},
         SENSOR_ID_ACC             : {"name":"accelerometer corrected",     "frame_size":7,          "scale":SCALE_DEFAULT_ACCEL},
         SENSOR_ID_GYR             : {"name":"gyroscope corrected",         "frame_size":7,          "scale":SCALE_DEFAULT_GYRO},
-        SENSOR_ID_BARO            : {"name":"barometric pressure",         "frame_size":4,          "scale":1},
+        SENSOR_ID_BARO            : {"name":"barometric pressure",         "frame_size":4,          "scale":0.0078125},
         SENSOR_ID_TEMP            : {"name":"temperature",                 "frame_size":3,          "scale": 0.01}, 
         SENSOR_ID_HUMID           : {"name":"relative humidity",           "frame_size":2,          "scale":1},
         SENSOR_ID_BSEC            : {"name":"BSEC",                        "frame_size":19,         "scale":1},
