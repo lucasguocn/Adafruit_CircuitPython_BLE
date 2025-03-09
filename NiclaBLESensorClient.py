@@ -36,6 +36,7 @@ class NiclaBLESensorClient:
         self.max_sample_rate = 0.0
 
         self.nicla_connection = None
+        self.nicla_mac_addr = None
         self.process_composite_sensors = True
         self.sensorDataPktCnt = 0
         self.sensorsConfigured = False
@@ -270,6 +271,7 @@ class NiclaBLESensorClient:
                 if NiclaService in adv.services:
                     print("found a Nicla Sense ME device")
                     self.nicla_connection = self.ble.connect(adv)
+                    self.nicla_mac_addr = adv.address
                     break
             # Stop scanning whether or not we are connected.
             self.ble.stop_scan()
