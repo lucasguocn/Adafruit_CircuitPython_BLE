@@ -75,9 +75,9 @@ class NiclaApp_BaroScale:
 
 
 
-    # Custom message callback function for user 1
+    # Custom message callback function 
     def __cb_mqtt_app_baro_scale(self, topic, payload):
-        print(f"User 1 received message on {topic}: {payload}")
+        print(f"App received message on [{topic}]: [{payload}]")
 
     def setupMQTT(self, mqttCfg:dict)->bool:
         # Test MQTT Client with localhost
@@ -87,12 +87,16 @@ class NiclaApp_BaroScale:
             user=mqttCfg["user"],
             password=mqttCfg["password"],
             clientid=mqttCfg["clientid"]
+            , dbg = self.dbg
         )
 
         # Start the client
         self.mqtt_client.start()
 
         # Subscribe user 1 to the topic "nicla/cmd" with their callback
-        self.mqtt_client.subscribe("nicla/+/cmd", self.__cb_mqtt_app_baro_scale)
+        topic_lower = "nicla/" + self.nicla_mac_addr_s.lower() + "/cmd"
+        topic_upper = "nicla/" + self.nicla_mac_addr_s.upper() + "/cmd"
+        self.mqtt_client.subscribe(topic_lower, self.__cb_mqtt_app_baro_scale)
+        self.mqtt_client.subscribe(topic_upper, self.__cb_mqtt_app_baro_scale)
 
 

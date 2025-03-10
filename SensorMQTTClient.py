@@ -45,7 +45,7 @@ class SensorMQTTClient:
         try:
             payload = msg.payload.decode()
             if self.dbg:
-                print(f"Received message on {msg.topic}: {payload}")
+                print(f"Received message on topic:[{msg.topic}]: payload:[{payload}]")
             
             # Notify all users subscribed to this topic
             if msg.topic in self.subscribers:
@@ -71,7 +71,7 @@ class SensorMQTTClient:
         """Subscribe a user to a topic with their corresponding callback."""
         if topic not in self.subscribers:
             self.subscribers[topic] = []
-        
+
         # Add the callback to the topic's list of subscribers
         self.subscribers[topic].append(callback)
         self.client.subscribe(topic)
@@ -98,8 +98,8 @@ if __name__ == "__main__":
     # Custom message callback function for user 1
     def user1_callback(topic, payload):
         print(f"User 1 received message on {topic}: {payload}")
-    
-    
+
+
     # Test MQTT Client with localhost
     mqtt_client = SensorMQTTClient(
         hostname="localhost",
