@@ -28,8 +28,8 @@ import readchar
 class NiclaBLESensorClient:
     def __init__(self, macAddrFilter:str = "", printData:bool = True, dbg:bool = False):
         self.ble = BLERadio()
-        self.dbg = False
-        self.printData = printData 
+        self.dbg = dbg
+        self.printData = printData
         self.macAddrFilter = macAddrFilter
 
         self.time_1st_event = datetime.datetime.now()
