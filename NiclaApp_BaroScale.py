@@ -10,8 +10,9 @@ peripheral.
 
 from adafruit_ble.services.nicla import *
 from NiclaBLESensorClient import NiclaBLESensorClient
-import struct
 from SensorMQTTClient import SensorMQTTClient
+import struct
+import json
 
 class NiclaApp_BaroScale:
     def __init__(self, dbg:bool = True):
@@ -78,6 +79,27 @@ class NiclaApp_BaroScale:
     # Custom message callback function 
     def __cb_mqtt_app_baro_scale(self, topic, payload):
         print(f"App received message on [{topic}]: [{payload}]")
+        #example valid message:
+        #topic:[nicla/44:4D/cmd]: 
+        #payload:[{"_payload":{"payload":{"command":"calibrate_start","arg1":503},,"socketid":"IEI2qi-67j9Ex3-dAAAD"}}]
+        try:
+            # Attempt to parse the JSON message
+            data = json.loads(payload)
+
+            # Safely extract the values
+            command = data["_payload"]["payload"].get("command", None)
+            arg1 = data["_payload"]["payload"].get("arg1", None)
+
+            if self.dbg:
+                print("command:", command)
+                print("arg1:", arg1)
+
+        except json.JSONDecodeError:
+            print("Error: Received an invalid JSON message")
+        except KeyError as e:
+            print(f"Error: Missing key in JSON message - {e}")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
 
     def setupMQTT(self, mqttCfg:dict)->bool:
         # Test MQTT Client with localhost
