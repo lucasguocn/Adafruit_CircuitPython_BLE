@@ -26,10 +26,11 @@ import readchar
 
 
 class NiclaBLESensorClient:
-    def __init__(self, printData:bool = True, dbg:bool = False):
+    def __init__(self, macAddrFilter:str = "", printData:bool = True, dbg:bool = False):
         self.ble = BLERadio()
         self.dbg = False
         self.printData = printData 
+        self.macAddrFilter = macAddrFilter
 
         self.time_1st_event = datetime.datetime.now()
         self.pkt_cnt_got = 0
@@ -269,9 +270,15 @@ class NiclaBLESensorClient:
             print("Scanning...")
             for adv in self.ble.start_scan(ProvideServicesAdvertisement, timeout=5):
                 if NiclaService in adv.services:
-                    print("found a Nicla Sense ME device")
+                    print(f"found a Nicla Sense ME device: <{adv.address}>")
+                    if self.macAddrFilter is not None:
+                        if self.macAddrFilter.lower() not in adv.address.string.lower():
+                            if self.dbg:
+                                print(f"mac address does not match filter:'{self.macAddrFilter}'")
+                            continue
+
                     self.nicla_connection = self.ble.connect(adv)
-                    self.nicla_mac_addr = adv.address
+                    self.nicla_mac_addr = adv.address.string
                     break
             # Stop scanning whether or not we are connected.
             self.ble.stop_scan()
@@ -353,7 +360,7 @@ class NiclaBLESensorClient:
 
 if __name__ == "__main__":
     nicla_client = NiclaBLESensorClient()
-    success = nicla_client.try_connect_until_success()
+    success = nicla_client.try_connect_until_success(timeout_sec = 60)
     if success:
         sensorsCfg = {
             #latency is milli-seconds, if the rate for a sensor is higher than 25hz, recommends to have a latency larger than 40ms
