@@ -18,7 +18,7 @@ class NiclaApp_BaroScale:
     def __init__(self, dbg:bool = True):
         self.dbg = dbg
     def connectToDevice(self, macAddrFilter:str=""):
-        self.nicla_client = NiclaBLESensorClient(macAddrFilter=macAddrFilter, printData = False)
+        self.nicla_client = NiclaBLESensorClient(macAddrFilter=macAddrFilter, printData = True, dbg = self.dbg)
         success = self.nicla_client.try_connect_until_success(timeout_sec = 10)
         if success:
             self.nicla_mac_addr_s = self.nicla_client.nicla_mac_addr[-5:]
@@ -38,7 +38,7 @@ class NiclaApp_BaroScale:
                 SENSOR_ID_GYR                               : {"sample_rate":000.0,                 "latency":90,    "cb":None},
                 SENSOR_ID_ACC_RAW                           : {"sample_rate":000.0,                 "latency":90,    "cb":None},
                 SENSOR_ID_GYR_RAW                           : {"sample_rate":000.0,                 "latency":90,    "cb":None},
-                SENSOR_ID_BARO                              : {"sample_rate":pressureSensorSR,                  "latency":0,     "cb":self.__cb_sensor_data_ready_baro_app},
+                SENSOR_ID_BARO                              : {"sample_rate":10.0,                  "latency":0,     "cb":self.__cb_sensor_data_ready_baro_app},
                 SENSOR_ID_TEMP                              : {"sample_rate":0.0,                   "latency":0,     "cb":None},
                 SENSOR_ID_HUMID                             : {"sample_rate":0.0,                   "latency":0,     "cb":None},
                 SENSOR_ID_BSEC                              : {"sample_rate":0.0,                   "latency":0,     "cb":None},
@@ -108,8 +108,8 @@ class NiclaApp_BaroScale:
             port=mqttCfg["port"],
             user=mqttCfg["user"],
             password=mqttCfg["password"],
-            clientid=mqttCfg["clientid"]
-            , dbg = self.dbg
+            clientid=mqttCfg["clientid"],
+            dbg = self.dbg
         )
 
         # Start the client
