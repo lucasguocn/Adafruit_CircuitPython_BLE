@@ -4,7 +4,7 @@ import random
 import time
 
 class SensorMQTTClient:
-    def __init__(self, hostname, port=1883, user=None, password=None, clientid=None):
+    def __init__(self, hostname, port=1883, user=None, password=None, clientid=None, dbg = False):
         """
         Initialize the MQTT client.
         
@@ -17,6 +17,7 @@ class SensorMQTTClient:
         self.hostname = hostname
         self.port = port
         self.client = mqtt.Client(client_id=clientid)  # Create an MQTT client
+        self.dbg = dbg
         
         # Set authentication if provided
         if user and password:
@@ -33,15 +34,18 @@ class SensorMQTTClient:
     def on_connect(self, client, userdata, flags, rc):
         """Handles connection to the MQTT broker."""
         if rc == 0:
-            print(f"Connected to MQTT Broker at {self.hostname}:{self.port}")
+            if self.dbg:
+                print(f"Connected to MQTT Broker at {self.hostname}:{self.port}")
         else:
-            print(f"Failed to connect, return code {rc}")
+            if self.dbg:
+                print(f"Failed to connect, return code {rc}")
 
     def on_message(self, client, userdata, msg):
         """Handles incoming messages and triggers the appropriate callbacks."""
         try:
             payload = msg.payload.decode()
-            print(f"Received message on {msg.topic}: {payload}")
+            if self.dbg:
+                print(f"Received message on {msg.topic}: {payload}")
             
             # Notify all users subscribed to this topic
             if msg.topic in self.subscribers:
@@ -52,13 +56,16 @@ class SensorMQTTClient:
 
     def on_disconnect(self, client, userdata, rc):
         """Handles unexpected disconnection."""
-        print("Disconnected from MQTT Broker. Reconnecting...")
+        if self.dbg:
+            print("Disconnected from MQTT Broker. Reconnecting...")
         client.reconnect()
 
     def publish(self, topic, message):
         """Publishes a message to a specified topic."""
         self.client.publish(topic, json.dumps(message))
-        print(f"Published to {topic}: {message}")
+        #self.client.publish(topic, (message))
+        if self.dbg:
+            print(f"Published to {topic}: {message}")
 
     def subscribe(self, topic, callback):
         """Subscribe a user to a topic with their corresponding callback."""
@@ -68,17 +75,20 @@ class SensorMQTTClient:
         # Add the callback to the topic's list of subscribers
         self.subscribers[topic].append(callback)
         self.client.subscribe(topic)
-        print(f"Subscribed to topic: {topic}")
+        if self.dbg:
+            print(f"Subscribed to topic: {topic}")
 
     def start(self):
         """Connects to the MQTT broker and starts the loop."""
-        print("Starting MQTT client...")
+        if self.dbg:
+            print("Starting MQTT client...")
         self.client.connect(self.hostname, self.port, 60)
         self.client.loop_start()  # Start the background loop
 
     def stop(self):
         """Stops the MQTT client."""
-        print("Stopping MQTT client...")
+        if self.dbg:
+            print("Stopping MQTT client...")
         self.client.loop_stop()
         self.client.disconnect()
 
@@ -89,9 +99,6 @@ if __name__ == "__main__":
     def user1_callback(topic, payload):
         print(f"User 1 received message on {topic}: {payload}")
     
-    # Custom message callback function for user 2
-    def user2_callback(topic, payload):
-        print(f"User 2 received message on {topic}: {payload}")
     
     # Test MQTT Client with localhost
     mqtt_client = SensorMQTTClient(

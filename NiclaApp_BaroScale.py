@@ -65,11 +65,13 @@ class NiclaApp_BaroScale:
         if self.mqtt_client is not None:
             pressure_data = {
                     "value":baro,
-                    "timestamp": timestamp
+                    "timestamp": str(timestamp)
             }
             topic = "nicla/" + self.nicla_mac_addr_s + "/data/pressure"
-            msg_pres_data = '{"value":' + str(baro) + ',' + '"timestamp":' + str(timestamp) + '}'
-            self.mqtt_client.publish(topic, msg_pres_data)
+            self.mqtt_client.publish(topic, pressure_data)
+            #msg_pres_data = '{"value":' + str(baro) + ',' + '"timestamp":' + str(timestamp) + '}'
+            #msg_pres_data = '{"value":' + str(baro) + ',' + '"timestamp":' + str(timestamp) + '}'
+            #self.mqtt_client.publish(topic, msg_pres_data)
 
 
 
