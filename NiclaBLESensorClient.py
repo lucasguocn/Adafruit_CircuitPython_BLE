@@ -88,11 +88,11 @@ class NiclaBLESensorClient:
 
         st = struct.Struct("=BfI")
         sensorConfigPkt = bytearray(NICLA_BLE_SENSOR_CFG_PKT_SIZE)
-        for sensor in sensorsCfg:
+        for sensor, cfg in sensorsCfg.items():
             self.sensorStateList[sensor] = {}
-            self.sensorStateList[sensor]["sample_rate"] = sensorsCfg[sensor]["sample_rate"]
-            self.sensorStateList[sensor]["latency"] = sensorsCfg[sensor]["latency"]
-            self.sensorStateList[sensor]["cb"] = sensorsCfg[sensor]["cb"]
+            self.sensorStateList[sensor]["sample_rate"] = cfg.get("sample_rate", 0)
+            self.sensorStateList[sensor]["latency"] = cfg.get("latency", 0)
+            self.sensorStateList[sensor]["cb"] = cfg.get("cb", None)
             self.sensorStateList[sensor]["evtCnt"] = 0
 
             sample_rate = self.sensorStateList[sensor]["sample_rate"]
@@ -103,6 +103,7 @@ class NiclaBLESensorClient:
                 self.max_sample_rate = sample_rate
 
             if self.dbg:
+                print(f"config sample_rate:{sample_rate} for sensor: {sensor}")
                 print("config pkt for sensor:", sensor)
                 for b in sensorConfigPkt: print(hex(b))
 
@@ -237,7 +238,7 @@ class NiclaBLESensorClient:
         pktCntInBatch = int(lenSensorDataBatch / pkt_size)
 
         if self.dbg:
-            print("    bytes read:", lenSensorDataBatch, pktCntInBatch, "#",  "@", t_now, "del=", (t_now - t_prev))
+            print("    bytes read:", lenSensorDataBatch, pktCntInBatch, "#",  "@", t_now, "del=", (t_now - self.t_prev))
 
         self.t_prev = t_now
 
