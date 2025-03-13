@@ -78,8 +78,6 @@ class NiclaBLESensorClient:
 
 
     def __configSensors(self, sensorsCfg:dict) -> bool:
-        print("sensorsCfg")
-        print(sensorsCfg)
         connection = self.nicla_connection
         if connection is None or not connection.connected:
             if self.dbg:
@@ -153,7 +151,8 @@ class NiclaBLESensorClient:
         if sensorId in self.sensorStateList:
             cb = self.sensorStateList[sensorId]["cb"]
             if cb is not None:
-                print(f"cb for {sensorId}")
+                if self.dbg:
+                    print(f"cb for {sensorId}")
                 cb(t_now, sensorFrame, pkt_size)
         #if (sensorId == SENSOR_ID_ACC) or (sensorId == SENSOR_ID_GYR):
         if (sensorId in [SENSOR_ID_ACC, SENSOR_ID_GYR, SENSOR_ID_ACC_RAW, SENSOR_ID_GYR_RAW]):

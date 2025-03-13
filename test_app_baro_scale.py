@@ -14,7 +14,7 @@ from NiclaBLESensorClient import NiclaBLESensorClient
 from NiclaApp_BaroScale import NiclaApp_BaroScale
 
 
-baroScale = NiclaApp_BaroScale(dbg = True)
+baroScale = NiclaApp_BaroScale(dbg = False)
 baroScale.connectToDevice(macAddrFilter = "44:4d")
 mqttcfg = {
         "hostname":"localhost",
